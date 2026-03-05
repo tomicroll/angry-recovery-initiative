@@ -3,15 +3,15 @@
   "title": "Angry GM Recovery Initiative",
   "description": "Implements Angry GM's Recovery Time Initiative system for D&D5e in Foundry VTT.",
   "version": "1.0.0",
-  "compatibility": {
-    "minimum": "13",
-    "verified": "13"
-  },
   "authors": [
     {
       "name": "Matt Smith"
     }
   ],
+  "compatibility": {
+    "minimum": "13",
+    "verified": "13"
+  },
   "scripts": [
     "scripts/recovery-init.js"
   ],
@@ -22,5 +22,8 @@
         "type": "system"
       }
     ]
-  }
+  },
+  "url": "https://github.com/tomicroll/angry-recovery-initiative",
+  "manifest": "https://raw.githubusercontent.com/tomicroll/angry-recovery-initiative/main/module.json",
+  "download": "https://github.com/tomicroll/angry-recovery-initiative/archive/refs/heads/main.zip"
 }
