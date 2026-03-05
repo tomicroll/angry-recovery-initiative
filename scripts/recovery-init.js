@@ -10,47 +10,52 @@ Hooks.on("createCombatant", async (combatant) => {
 });
 
 /* Combat Tracker Buttons */
-Hooks.on("renderCombatTracker", (app, html, data) => {
+Hooks.on("renderCombatTracker", (app, html) => {
 
-  const controls = `
-  <div class="angry-recovery-controls" style="padding:4px;border-top:1px solid #666;">
-    <b>Recovery:</b>
-    <button data-die="4">Fast d4</button>
-    <button data-die="6">Normal d6</button>
-    <button data-die="8">Heavy d8</button>
-    <button data-die="10">Spell d10</button>
-  </div>
-  `;
+  if (html.find(".angry-recovery-controls").length) return;
 
-  html.find(".combat-tracker").append(controls);
+  const controls = $(`
+    <div class="angry-recovery-controls" style="padding:6px;border-top:1px solid #666;text-align:center;">
+      <b>Recovery:</b>
+      <button data-die="4">Fast d4</button>
+      <button data-die="6">Normal d6</button>
+      <button data-die="8">Heavy d8</button>
+      <button data-die="10">Spell d10</button>
+    </div>
+  `);
 
-  html.find(".angry-recovery-controls button").click(async ev => {
+  html.append(controls);
+
+  controls.find("button").click(async ev => {
 
     const die = Number(ev.currentTarget.dataset.die);
 
-    const combatant = game.combat?.combatant;
-    if (!combatant) return;
+    const combat = game.combat;
+    const combatant = combat?.combatant;
+
+    if (!combatant) {
+      ui.notifications.warn("No active combatant.");
+      return;
+    }
 
     const actor = combatant.actor;
-    if (!actor) return;
 
     const roll = await new Roll(`1d${die}`).evaluate();
 
     const newInit = (combatant.initiative ?? 0) + roll.total;
 
-    await game.combat.setInitiative(combatant.id, newInit);
+    await combat.setInitiative(combatant.id, newInit);
 
     roll.toMessage({
       flavor: `Recovery Roll (1d${die})`,
       speaker: ChatMessage.getSpeaker({ actor })
     });
 
-    game.combat.nextTurn();
+    await combat.nextTurn();
 
   });
 
 });
-
 /* Fallback recovery die detection (items) */
 Hooks.on("dnd5e.useItem", async (item) => {
 
