@@ -3,9 +3,56 @@ Hooks.once("ready", () => {
   console.log("Angry Recovery Initiative Loaded");
 });
 
+/* Give everyone the same starting initiative */
+Hooks.on("createCombatant", async (combatant) => {
+  if (!game.combat) return;
+  await game.combat.setInitiative(combatant.id, 10);
+});
 
-// Detect item usage and determine recovery die
-Hooks.on("dnd5e.useItem", async (item, config) => {
+/* Combat Tracker Buttons */
+Hooks.on("renderCombatTracker", (app, html, data) => {
+
+  const controls = `
+  <div class="angry-recovery-controls" style="padding:4px;border-top:1px solid #666;">
+    <b>Recovery:</b>
+    <button data-die="4">Fast d4</button>
+    <button data-die="6">Normal d6</button>
+    <button data-die="8">Heavy d8</button>
+    <button data-die="10">Spell d10</button>
+  </div>
+  `;
+
+  html.find(".combat-tracker").append(controls);
+
+  html.find(".angry-recovery-controls button").click(async ev => {
+
+    const die = Number(ev.currentTarget.dataset.die);
+
+    const combatant = game.combat?.combatant;
+    if (!combatant) return;
+
+    const actor = combatant.actor;
+    if (!actor) return;
+
+    const roll = await new Roll(`1d${die}`).evaluate();
+
+    const newInit = (combatant.initiative ?? 0) + roll.total;
+
+    await game.combat.setInitiative(combatant.id, newInit);
+
+    roll.toMessage({
+      flavor: `Recovery Roll (1d${die})`,
+      speaker: ChatMessage.getSpeaker({ actor })
+    });
+
+    game.combat.nextTurn();
+
+  });
+
+});
+
+/* Fallback recovery die detection (items) */
+Hooks.on("dnd5e.useItem", async (item) => {
 
   const actor = item.actor;
   if (!actor) return;
@@ -22,35 +69,6 @@ Hooks.on("dnd5e.useItem", async (item, config) => {
     else die = 6;
   }
 
-  if (item.type === "feat") {
-    die = 4;
-  }
-
   await actor.setFlag("angry-init", "recoveryDie", die);
-});
 
-
-// When turn advances, roll recovery and push initiative forward
-Hooks.on("updateCombat", async (combat, update) => {
-
-  if (!("turn" in update)) return;
-
-  const combatant = combat.combatant;
-  if (!combatant) return;
-
-  const actor = combatant.actor;
-  if (!actor) return;
-
-  let die = actor.getFlag("angry-init", "recoveryDie") ?? 6;
-
-  const roll = await new Roll(`1d${die}`).evaluate();
-
-  let newInit = (combatant.initiative ?? 0) + roll.total;
-
-  await combat.setInitiative(combatant.id, newInit);
-
-  roll.toMessage({
-    flavor: `Recovery Roll (1d${die})`,
-    speaker: ChatMessage.getSpeaker({ actor })
-  });
 });
